@@ -39,7 +39,7 @@ unsigned long memory(){
 	time_t t;
 	struct timespec b, e;
 	srand((unsigned) time(&t));
-	int access = 16*MB; //start at accessing 16 bytes per line
+	int access = 16*MB;
 
 	int sum = 0;
 	int strides[ITER];
@@ -50,8 +50,7 @@ unsigned long memory(){
 	int r = 0;
 	clock_gettime(CLOCK_REALTIME, &b);
 	for(int j = 0; j < ITER; j++){
-		r = strides[j];
-		sum += larg_af_array[(r+sum)];	//trigger page fault
+		sum += larg_af_array[(strides[j] + sum)];	//trigger page fault
 	}
 	clock_gettime(CLOCK_REALTIME, &e);
 	
@@ -62,47 +61,38 @@ unsigned long memory(){
 
 void tlb(){
 	
+	int repeats = 10.0;
+	int accesses = 4096;
 	time_t t;
 	srand((unsigned) time(&t));
-	int access = 16*MB; //start at accessing 16 bytes per line
 
-	int sum = 0;
-	int strides[ITER];
-	
-	for(int k = 0; k < ITER; k++){
-		strides[k] = rand() % access;
-	}
-	
-	long last_avg = 0;
+	int pos_sizes[8] = {32, 64, 128, 256, 512, 1024, 2048, 4096};
 
-	for(int i = 0; i < ITER; i++){
+	double last = 0;
+
+	for(int i = 0; i < 8; i++){
+		int curr = (pos_sizes[i]-1)/sizeof(int);
 		
-		struct timespec b, b1, e, e1;
-
-		sum += larg_af_array[(strides[i]+sum)];	//should trigger pagefault
-		
-		//strides[i] += sum;	//store location
-		int x = 0;
-			
-		clock_gettime(CLOCK_REALTIME, &b);
-		for(int j = 0; j <= i; j++){
-			x += larg_af_array[strides[j] + x];
-			//reaccess old stuff randomly and check for multiple page faults	
+		double time_to_test = 0.0;
+		struct timespec b, e;
+		for(int j = 0; j < repeats; j++){
+			int* rands = malloc(sizeof(int)*accesses);
+			for(int r = 0; r < accesses; r++){
+				rands[r] = rand()%pos_sizes[i];
+			}
+			int sum =0;
+			clock_gettime(CLOCK_REALTIME, &b);
+			for(int k = 0; k < accesses; k++){
+				sum += larg_af_array[((rands[k] + sum)*16)];
+			}
+			clock_gettime(CLOCK_REALTIME, &e);
+			time_to_test += (delta_time(b, e)/accesses);
+			free(rands);
 		}
-		clock_gettime(CLOCK_REALTIME, &e);
-
-		long new_avg = 0;
-		if(i > 128){	//calculate once we've gotten decently far
-			new_avg = (e.tv_nsec - b.tv_nsec)/i;
-		}	
+		double time = (time_to_test/repeats);
+		printf("Size Tested: %d\t Time: %f\n", pos_sizes[i], time);
 		
-		//printf("size %d; last avg %ld; new avg %ld\n", i, last_avg, new_avg);
-		long delta = new_avg - last_avg;
-		printf("Size %d; Delta avg: %ld\n", i, (delta < 0) ? delta*-1:delta);
-		last_avg = new_avg;
-	}
-		
-		
+	}	
 }
 
 #define KB 1024
@@ -143,8 +133,8 @@ void caches(){
 		printf("Size Tested: %d\t Time: %f\n", pos_sizes[i], time);
 		if(i == 0) last = time;
 		double diff = (time - last < 0) ? (time-last)*-1:(time-last);
-		if(diff > .2 && L1 == 0){
-			printf("L1 size: %d\n", pos_sizes[i]);
+		if(time > 2.4 && L1 == 0){
+			printf("L1 size: %d\n", pos_sizes[i-1]);
 			L1 = 1;
 		}else if(time > 6 && L1 == 1 && L2 == 0){
 			printf("L2 size: %d\n", pos_sizes[i-1]);
