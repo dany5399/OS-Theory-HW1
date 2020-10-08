@@ -18,16 +18,17 @@ void free_mat(int** mat, int size){
 	free(mat);
 }
 
-int** mat_init(int size){
+int** mat_init(int size, int pad){
 	int** mat = malloc(sizeof(int*)*size);
 	for(int i=0; i < size; i++){
 		mat[i] = malloc(sizeof(int)*size);
+		if(pad) memset(mat[i], 0, sizeof(int)*size);
 	}
 	return mat;
 }
 
 int** matmul(int** mat1, int** mat2, int size){
-	int** res = mat_init(size);
+	int** res = mat_init(size, 0);
 	for(int i=0; i < size; i++){
 		for(int j = 0; j < size; j++){
 			res[i][j] = 0;
@@ -51,7 +52,7 @@ void write_check_mat(int** mat1, int** mat2, int size, char* file){
 }
 
 int** read_check_mat(int size, char* file){
-	int** check_mat = mat_init(size);
+	int** check_mat = mat_init(size, 0);
 	int fd = open(file, O_RDWR);
 
 	for(int i=0; i < size; i++){
@@ -82,6 +83,7 @@ void generate_sq_matrix(int** mat, int simple, int size){
 	}
 }
 
+
 //rq, cq = 0 or 1 depending on quadrant
 void _split(int** mat, int** s, int rq, int cq, int size){
 	int si = 0;
@@ -100,7 +102,7 @@ int*** split(int** mat, int size){
 	int*** splits = malloc(sizeof(int**)*4);
 	int g = 0, h = 0;
 	for(int k=0; k < 4; k++){
-		splits[k] = mat_init(size);
+		splits[k] = mat_init(size, 0);
 		g = k/2; //needs to flip every other iter. only works because only 4 splits
 		_split(mat, splits[k], g, h, size);
 		h ^= 1;
@@ -109,7 +111,7 @@ int*** split(int** mat, int size){
 }
 
 int** combine(int** q1, int** q2, int** q3, int** q4, int size){
-	int** ret = mat_init(size);
+	int** ret = mat_init(size, 0);
 	int hsize = size/2;
 	int msize = sizeof(int)*hsize;
 	for(int i = 0; i < hsize; i++){
@@ -126,6 +128,15 @@ void mat_add_sub(int flip, int** mat1, int** mat2, int** ret, int size){
 	for(int i = 0; i < size; i++){
 		for(int j = 0; j < size; j++){
 			ret[i][j] = mat1[i][j] + ((!flip) ? mat2[i][j] : mat2[i][j] * -1);
+		}
+	}
+}
+
+void copy_mat(int** src, int** dest, int size){
+
+	for(int i = 0; i < size; i++){
+		for(int j = 0; j < size; j++){
+			dest[i][j] = src[i][j];
 		}
 	}
 }

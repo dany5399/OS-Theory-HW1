@@ -13,7 +13,7 @@
 
 void print_mat(int**, int);
 void free_mat(int**, int);
-int** mat_init(int);
+int** mat_init(int, int);
 int** matmul(int**, int**, int);
 int check_mul(int**, int**, int);
 void generate_sq_matrix(int**, int, int);
@@ -22,5 +22,5 @@ int** combine(int**, int**, int**, int**, int);
 void mat_add_sub(int, int**, int**, int**, int);
 void write_check_mat(int**, int**, int, char*);
 int** read_check_mat(int, char*);
-
+void copy_mat(int**, int**, int);
 #endif
